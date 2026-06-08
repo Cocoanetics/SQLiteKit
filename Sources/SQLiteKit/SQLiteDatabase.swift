@@ -218,7 +218,7 @@ public final class SQLiteDatabase {
         return newValue < 0 ? prior : sqlite3_limit(handle, code, -1)
     }
 
-    // MARK: -safe authorizer
+    // MARK: - safe-mode authorizer
 
     /// When the `-safe`-mode authorizer denies an operation, the shell's
     /// refusal message for it (e.g. `cannot run ATTACH in safe mode`). The
@@ -234,7 +234,7 @@ public final class SQLiteDatabase {
     /// `edit` / `fsdir` / `zipfile` are CLI-shell-only (absent here, so they
     /// already fail as "no such function") — listed for forward-compatibility.
     private static let safeModeProhibitedFunctions: Set<String> = [
-        "load_extension", "readfile", "writefile", "edit", "fsdir", "zipfile",
+        "load_extension", "readfile", "writefile", "edit", "fsdir", "zipfile"
     ]
 
     /// Scratch buffer for ``attachTargets(in:)`` — the recording authorizer

@@ -8,23 +8,32 @@ on:
     branches:
       - main
 
-# Analog to Cocoanetics/SwiftPorts' swift.yml, minus the external-C-dependency
-# install steps (brew / apt / vcpkg): SQLiteKit vendors the SQLite engine, so
-# there are no system libraries to provision on any platform.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Analog to Cocoanetics/ShellKit's swift.yml (SQLiteKit's standalone-library
+# peer), extended to the full Apple platform matrix the package declares
+# (macOS / iOS / tvOS / watchOS / visionOS) plus Linux / Windows / Android.
+# No external-C provisioning on any platform (no brew / apt / vcpkg): the SQLite
+# engine is vendored, so there are no system libraries to install.
 #
-# Each full-build platform runs the suite twice: a default run that pins the
-# trait-OFF contract (the `#else` branches — FTS5 / vec0 modules absent), then a
-# `--traits FTS5,SQLiteVec` run filtered to the on-state proofs. Android runs the
-# whole suite with both traits on the x86_64 emulator — the on-device target
-# sqlite-vec is built for.
+# The four full-build platforms (macOS / Linux / Windows / Android) run the
+# suite twice — a default run that pins the trait-OFF contract (the `#else`
+# branches: FTS5 / vec0 modules absent), then a `--traits FTS5,SQLiteVec` run for
+# the on-state proofs (fullTextSearchFTS5, semanticSearchSQLiteVec, vec0BlobBind).
+# The Apple-mobile jobs build the library against each device SDK (a portability
+# check); iOS additionally runs the suite on a simulator.
+
 jobs:
 
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      # macos-latest ships an older Xcode; SQLiteKit's tools-version is 6.2.
+      # Pin `macos-15`: `setup-xcode` only selects among Xcodes already on the
+      # image, and `macos-latest` isn't guaranteed to carry Xcode 26 (the
+      # package's tools-version is 6.2). `macos-15` ships Xcode 26 + Apple SDKs.
       - name: Select Xcode 26.0
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -39,9 +48,7 @@ jobs:
         run: swift test -v --traits FTS5,SQLiteVec --filter fullTextSearchFTS5 --filter semanticSearchSQLiteVec --filter vec0BlobBind
 
   build-ios:
-    # Build + run the suite on the iOS Simulator (default, trait-off). The
-    # trait-on engine build for on-device is covered by build-android.
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
@@ -49,16 +56,58 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "26.0"
+      - name: Build (iOS device SDK)
+        run: xcodebuild -scheme SQLiteKit -destination 'generic/platform=iOS' build
       - name: Test (iOS Simulator)
         run: |
-          xcodebuild \
-            -scheme SQLiteKit \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
-            test
+          set -eo pipefail
+          # Pick the first available iPhone simulator rather than pinning a
+          # device name a future Xcode might drop.
+          UDID=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name|test("iPhone"))][0].udid // empty')
+          [ -n "$UDID" ] || { echo "::error::no iPhone simulator available"; exit 1; }
+          echo "Using simulator $UDID"
+          xcodebuild test -scheme SQLiteKit -destination "platform=iOS Simulator,id=$UDID"
+
+  build-tvos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select Xcode 26.0
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.0"
+      - name: Build (tvOS device SDK)
+        run: xcodebuild -scheme SQLiteKit -destination 'generic/platform=tvOS' build
+
+  build-watchos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select Xcode 26.0
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.0"
+      - name: Build (watchOS device SDK)
+        run: xcodebuild -scheme SQLiteKit -destination 'generic/platform=watchOS' build
+
+  build-visionos:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select Xcode 26.0
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.0"
+      - name: Build (visionOS device SDK)
+        run: xcodebuild -scheme SQLiteKit -destination 'generic/platform=visionOS' build
 
   build-linux:
-    # No `apt-get` step — the SQLite engine is vendored, so the container needs
-    # nothing beyond the toolchain. Pinned to 6.2 (SQLiteKit's tools-version).
+    # No `apt-get` — the SQLite engine is vendored. Pinned to 6.2
+    # (SQLiteKit's tools-version).
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
@@ -75,9 +124,8 @@ jobs:
         run: swift test -v --traits FTS5,SQLiteVec --filter fullTextSearchFTS5 --filter semanticSearchSQLiteVec --filter vec0BlobBind
 
   build-windows:
-    # No vcpkg step — SQLite is vendored, so there are no external `.lib` files
-    # to locate (unlike SwiftPorts' libgit2 / libarchive), hence no `-Xcc` /
-    # `-Xlinker` search-path flags.
+    # No vcpkg — SQLite is vendored, so there are no external `.lib` files to
+    # locate and no `-Xcc` / `-Xlinker` search-path flags.
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -89,10 +137,13 @@ jobs:
       - name: Verify Swift version
         run: swift --version
       - name: Build (Windows)
+        shell: pwsh
         run: swift build --build-tests -v
       - name: Test (Windows)
+        shell: pwsh
         run: swift test -v --skip-build --no-parallel
       - name: Test engine traits FTS5 + SQLiteVec (Windows)
+        shell: pwsh
         run: swift test -v --traits FTS5,SQLiteVec --filter fullTextSearchFTS5 --filter semanticSearchSQLiteVec --filter vec0BlobBind
 
   build-android:

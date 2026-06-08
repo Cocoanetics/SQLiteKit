@@ -24,7 +24,7 @@ public extension SQLiteValue {
         // sqlite3 dumps raw blob bytes in text modes; we decode as UTF-8
         // (lossy for non-textual binary), since the formatter works in
         // String space rather than raw bytes.
-        case .blob(let b): return String(decoding: b, as: UTF8.self)
+        case .blob(let b): return String(decoding: b, as: UTF8.self) // swiftlint:disable:this optional_data_string_conversion
         }
     }
 

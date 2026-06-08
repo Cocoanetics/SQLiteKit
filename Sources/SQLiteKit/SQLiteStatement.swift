@@ -7,7 +7,7 @@ import SQLiteSwiftCSQLite
 /// reconstruct it the canonical way. Without this, SQLite would alias the
 /// Swift `String` / `Data` buffer, which doesn't outlive the call — the
 /// classic silent-garbage / use-after-free binding bug.
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self) // swiftlint:disable:this identifier_name
 
 /// A prepared SQLite statement — a reusable handle for the bulk path
 /// (prepare once, bind + step + reset many). Values are handed to SQLite

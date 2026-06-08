@@ -46,7 +46,7 @@ public struct ResultFormatter: Sendable {
         self.insertTable = insertTable
     }
 
-    public func render(_ set: ResultSet) -> String {
+    public func render(_ set: ResultSet) -> String { // swiftlint:disable:this cyclomatic_complexity
         switch mode {
         case .list: return separated(set, colSep: separator, rowSep: "\n")
         case .tabs: return separated(set, colSep: "\t", rowSep: "\n")

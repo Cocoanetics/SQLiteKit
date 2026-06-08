@@ -1,0 +1,33 @@
+# SwiftLint runs `--strict` in CI (.github/workflows/swiftlint.yml) and via the
+# local pre-commit hook, mirroring the Cocoanetics convention (ShellKit).
+#
+# A handful of default rules are tuned for what this package is: a thin SQLite
+# C-interop SDK. Short names (`rc`, `db`, `op`, `i`) are the idiomatic spelling
+# at the C boundary, and the cohesive `SQLiteDatabase` / `ResultFormatter` types
+# read better whole than carved up to satisfy a line budget. Everything else is
+# stock SwiftLint.
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - .swiftpm
+
+identifier_name:
+  # Allow the short, idiomatic names used at the C-interop boundary.
+  min_length:
+    warning: 1
+    error: 1
+
+line_length:
+  warning: 160
+  error: 250
+
+file_length:
+  warning: 600
+  error: 1000
+
+type_body_length:
+  warning: 350
+  error: 500

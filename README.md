@@ -7,6 +7,7 @@ opt-in traits. Runs everywhere Swift does: macOS, iOS, tvOS, watchOS, visionOS,
 Linux, Android, and Windows.
 
 [![Swift](https://github.com/Cocoanetics/SQLiteKit/actions/workflows/swift.yml/badge.svg)](https://github.com/Cocoanetics/SQLiteKit/actions/workflows/swift.yml)
+[![SwiftLint](https://github.com/Cocoanetics/SQLiteKit/actions/workflows/swiftlint.yml/badge.svg)](https://github.com/Cocoanetics/SQLiteKit/actions/workflows/swiftlint.yml)
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20·%20iOS%20·%20tvOS%20·%20watchOS%20·%20visionOS%20·%20Linux%20·%20Android%20·%20Windows-blue.svg)](#platforms)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
