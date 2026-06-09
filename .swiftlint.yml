@@ -2,10 +2,13 @@
 # local pre-commit hook, mirroring the Cocoanetics convention (ShellKit).
 #
 # A handful of default rules are tuned for what this package is: a thin SQLite
-# C-interop SDK. Short names (`rc`, `db`, `op`, `i`) are the idiomatic spelling
-# at the C boundary, and the cohesive `SQLiteDatabase` / `ResultFormatter` types
-# read better whole than carved up to satisfy a line budget. Everything else is
-# stock SwiftLint.
+# C-interop SDK plus the `Sqlite3Shell` CLI port. Short names (`rc`, `db`, `op`,
+# `i`) are the idiomatic spelling at the C boundary, and the cohesive
+# `SQLiteDatabase` / `ResultFormatter` types read better whole than carved up to
+# satisfy a line budget. The shell port (`Sources/Sqlite3Shell`) is a faithful
+# 1:1 reproduction of the sqlite3 CLI — a long dispatch switch and one REPL type
+# — so it carries scoped `swiftlint:disable:next` directives at the few oversized
+# declarations. Everything else is stock SwiftLint.
 included:
   - Sources
   - Tests
@@ -13,6 +16,13 @@ included:
 excluded:
   - .build
   - .swiftpm
+
+blanket_disable_command:
+  # `file_length` is reported at end-of-file, so it cannot be scoped with
+  # `disable:next` like the other size rules. The shell port and its test suite
+  # disable it file-wide on purpose; allow that one rule to be blanket-disabled.
+  allowed_rules:
+    - file_length
 
 identifier_name:
   # Allow the short, idiomatic names used at the C-interop boundary.
