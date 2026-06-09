@@ -127,13 +127,14 @@ let package = Package(
             ]
         ),
         // Drives `Sqlite3Executable` directly (no ArgumentParser), so it builds
-        // and runs on every platform in the matrix — Android included —
-        // exercising the shell port on the emulator in CI.
+        // and runs on every platform `swift test` covers — Android included —
+        // exercising the shell port on the emulator in CI. Depends only on
+        // `Sqlite3Shell` (+ ShellKit for the IO harness); it references no
+        // `SQLiteKit` symbols directly.
         .testTarget(
             name: "Sqlite3ShellTests",
             dependencies: [
                 "Sqlite3Shell",
-                "SQLiteKit",
                 .product(name: "ShellKit", package: "ShellKit"),
             ]
         ),

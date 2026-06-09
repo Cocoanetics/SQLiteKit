@@ -2,7 +2,6 @@ import Foundation
 import ShellKit
 import Testing
 @testable import Sqlite3Shell
-@testable import SQLiteKit
 
 // One cohesive suite over the shell port. `file_length` is disabled file-wide
 // (it can't be scoped to a declaration); the oversized suite type and the few
