@@ -201,6 +201,36 @@ recompiles the engine, so they are opt-in.
 - **`SQLiteRow` / `ResultSet`** — typed rows, subscriptable by index and column name.
 - **`ResultFormatter`** — sqlite3-compatible rendering.
 
+## The `sqlite3` shell driver
+
+The package also vends a **`Sqlite3Shell`** product — the argv parser plus the
+dot-command / REPL engine that reproduces the `sqlite3` command-line shell
+(`.tables`, `.schema`, `.dump`, `.import`, `.mode`, `-safe`, …). It is
+ArgumentParser-free and IO-agnostic: it reads, writes, and authorizes file paths
+through [`ShellKit.Shell`](https://github.com/Cocoanetics/ShellKit), so a host
+can drive it in-process on any platform — Android included — and confine it to a
+sandbox. SDK-only consumers that depend on the `SQLiteKit` product never build
+this target (or ShellKit) into their link.
+
+```swift
+.product(name: "Sqlite3Shell", package: "SQLiteKit"),
+```
+
+```swift
+import Sqlite3Shell
+import ShellKit
+
+let code = try await Sqlite3Executable.run(
+    argv: ["mydb.sqlite", "SELECT * FROM users;"],
+    stdin: Shell.current.stdin,
+    stdout: Shell.current.stdout,
+    stderr: Shell.current.stderr)
+```
+
+[Cocoanetics/SwiftPorts](https://github.com/Cocoanetics/SwiftPorts) wraps this
+driver in an ArgumentParser command to ship the `sqlite3` executable, and
+SwiftBash registers it as a native builtin.
+
 ## Platforms
 
 macOS 13+, iOS 16+, tvOS 16+, watchOS 9+, visionOS 1+, Linux, Android, Windows.

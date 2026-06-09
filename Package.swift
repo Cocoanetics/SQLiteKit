@@ -14,6 +14,15 @@ let package = Package(
         // The SDK: a thin, pure-Swift wrapper over the vendored SQLite
         // amalgamation. FTS5 and sqlite-vec ride along behind opt-in traits.
         .library(name: "SQLiteKit", targets: ["SQLiteKit"]),
+        // The `sqlite3` shell driver — the argv parser plus the dot-command /
+        // REPL engine that reproduces the sqlite3 CLI. ArgumentParser-free and
+        // IO-agnostic (it reads / writes / authorizes paths through
+        // `ShellKit.Shell`), so a host can drive it in-process on any platform,
+        // Android included. The SwiftPorts `sqlite3` executable wraps it in an
+        // ArgumentParser command; SwiftBash registers it as a native builtin.
+        // Pulls in ShellKit — SDK-only consumers that depend on the `SQLiteKit`
+        // product never build this target (or ShellKit) into their link.
+        .library(name: "Sqlite3Shell", targets: ["Sqlite3Shell"]),
     ],
     // Opt-in, build-time engine toggles. Both off by default.
     //   • depending on this package:   .package(url: …, traits: ["FTS5", "SQLiteVec"])
@@ -35,6 +44,14 @@ let package = Package(
         .package(url: "https://github.com/stephencelis/CSQLite",
                  exact: "3.50.4",
                  traits: [.trait(name: "FTS5", condition: .when(traits: ["FTS5"]))]),
+        // Host runtime context for the `Sqlite3Shell` driver: the IO sinks it
+        // reads / writes through and the sandbox gate (`Shell.resolve` /
+        // `Shell.authorize`) every file-touching dot-command passes. Only the
+        // ArgumentParser-free `ShellKit` core product is used, so no
+        // ArgumentParser enters this package's graph. Pinned to `main` until
+        // ShellKit ships a tagged release.
+        .package(url: "https://github.com/Cocoanetics/ShellKit",
+                 branch: "main"),
     ],
     targets: [
         // Typed C wrappers for SQLite's variadic printf (`sqlite3_mprintf`),
@@ -96,6 +113,30 @@ let package = Package(
         .testTarget(
             name: "SQLiteKitTests",
             dependencies: ["SQLiteKit"]
+        ),
+        // The `sqlite3` shell driver: `Parser` (SQLite's single-dash long
+        // options, which ArgumentParser can't express) plus `Sqlite3Executable`
+        // / `Session` (the dot-command and REPL engine). Depends on the SDK and
+        // on ShellKit's core for IO + the sandbox gate; carries no
+        // ArgumentParser, so it builds on every platform (Android included).
+        .target(
+            name: "Sqlite3Shell",
+            dependencies: [
+                "SQLiteKit",
+                .product(name: "ShellKit", package: "ShellKit"),
+            ]
+        ),
+        // Drives `Sqlite3Executable` directly (no ArgumentParser), so it builds
+        // and runs on every platform `swift test` covers — Android included —
+        // exercising the shell port on the emulator in CI. Depends only on
+        // `Sqlite3Shell` (+ ShellKit for the IO harness); it references no
+        // `SQLiteKit` symbols directly.
+        .testTarget(
+            name: "Sqlite3ShellTests",
+            dependencies: [
+                "Sqlite3Shell",
+                .product(name: "ShellKit", package: "ShellKit"),
+            ]
         ),
     ]
 )
